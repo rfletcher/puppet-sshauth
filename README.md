@@ -3,12 +3,12 @@ sshauth
 
 Module sshauth provides centralized creation, distribution, and revocation of
 ssh keys for users. This modules was adapted from the ssh::auth module by
-Andrew E. Schulman <andrex at alumni dot utexas dot net>.  For full
+Andrew E. Schulman <andrex at alumni dot utexas dot net>. For full
 documentation of Andrew's version please refer to
 http://projects.puppetlabs.com/projects/1/wiki/Module_Ssh_Auth_Patterns
 
 I am expanding on the work Atha Kouroussis's sshauth module
-https://github.com/vurbia/puppet-sshauth.  This implementation has changed the
+https://github.com/vurbia/puppet-sshauth. This implementation has changed the
 use of virtual resources to exported resources. While it adds the burden of
 enabling storeconfigs, the main advantage is that keys can be declared
 contextually and not at central location so the keymaster can see them.
@@ -17,29 +17,29 @@ contextually and not at central location so the keymaster can see them.
 
 User Classes:
 -------------
-- sshauth::keymaster: 	Create key storage; create, regenerate, and remove key pairs.
-- sshauth::key:      	  Declare keys as exported resources.
+- sshauth::keymaster:   Create key storage; create, regenerate, and remove key pairs.
+- sshauth::key:         Declare keys as exported resources.
 - sshauth::client:      Install generated key pairs onto clients.
-- shauth::server:     	Install public keys onto ssh servers.
+- shauth::server:       Install public keys onto ssh servers.
 
 Private Classes:
 ----------------
-- sshauth::key::master:	Create/regenerate/remove a key pair on the keymaster.
-- sshauth::key::client:	Install a key pair into a user's account.
-- sshauth::key::server:	Install a public key into a server user's authorized_keys(5) file.
-- sshauth::key::namecheck:	Check a name (e.g. key title or filename) for the allowed form.
+- sshauth::key::master:    Create/regenerate/remove a key pair on the keymaster.
+- sshauth::key::client:    Install a key pair into a user's account.
+- sshauth::key::server:    Install a public key into a server user's authorized_keys(5) file.
+- sshauth::key::namecheck: Check a name (e.g. key title or filename) for the allowed form.
 
 
 
 # Facts: #
-- getent_passwd::		Returns passwd entry for all users using "getent".
-- getent_group::		Returns groups entry for all groups using "getent".
+- getent_passwd::   Returns passwd entry for all users using "getent".
+- getent_group::    Returns groups entry for all groups using "getent".
 
 
 
 # Functions: #
-- gethomedir::		Returns home directory name of user specified in args[0].
-- getgroup::		Returns primary group of user specified in args[0].
+- gethomedir::   Returns home directory name of user specified in args[0].
+- getgroup::     Returns primary group of user specified in args[0].
 
 
 
@@ -48,7 +48,7 @@ Usage Examples:
 
 
 ## sshauth::keymaster ##
-Create the keystore on the keymaster node.  Currently this must be the puppet master host:
+Create the keystore on the keymaster node. Currently this must be the puppet master host:
 
     include "sshauth::keymaster"
 
@@ -57,11 +57,11 @@ declare keypair named 'unixsys' with all defaults:
 
     sshauth::key {"unixsys": }
 
-set alturnate keyfile name for clients:
+set alternate keyfile name for clients:
 
     sshauth::key {"unixsys": filename => 'id_rsa-grall' }
 
-set user account for this key to agould.  set encryption type to dsa:
+set user account for this key to agould. set encryption type to dsa:
 
     sshauth::key { "unixsys": user => "agould", type => "dsa" }
 
@@ -78,7 +78,7 @@ override $user parameter on this client
 
     sshauth::client {"unixsys": user => 'agould' }
 
-override $user and $filename parameters.  This installs the 'unixsys' keypair into agould's account with alturnate keyname
+override $user and $filename parameters. This installs the 'unixsys' keypair into agould's account with alternate keyname
 
     sshauth::client {"unixsys": user => 'agould', filename => 'id_rsa-blee'}
 
