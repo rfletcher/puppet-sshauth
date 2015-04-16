@@ -17,10 +17,10 @@ contextually and not at central location so the keymaster can see them.
 
 User Classes:
 -------------
-- sshauth::keymaster:   Create key storage; create, regenerate, and remove key pairs.
+- sshauth::master:      Create key storage; create, regenerate, and remove key pairs.
 - sshauth::key:         Declare keys as exported resources.
 - sshauth::client:      Install generated key pairs onto clients.
-- shauth::server:       Install public keys onto ssh servers.
+- sshauth::server:      Install public keys onto ssh servers.
 
 Private Classes:
 ----------------
@@ -38,8 +38,8 @@ Private Classes:
 
 
 # Functions: #
-- gethomedir::   Returns home directory name of user specified in args[0].
-- getgroup::     Returns primary group of user specified in args[0].
+- get_home_dir:: Returns home directory name of user specified in args[0].
+- get_group::    Returns primary group of user specified in args[0].
 
 
 
@@ -50,54 +50,54 @@ Usage Examples:
 ## sshauth::keymaster ##
 Create the keystore on the keymaster node. Currently this must be the puppet master host:
 
-    include "sshauth::keymaster"
+    include ::sshauth::master
 
 ## sshauth::key ##
 declare keypair named 'unixsys' with all defaults:
 
-    sshauth::key {"unixsys": }
+    ::sshauth::key {"unixsys": }
 
 set alternate keyfile name for clients:
 
-    sshauth::key {"unixsys": filename => 'id_rsa-grall' }
+    ::sshauth::key {"unixsys": filename => 'id_rsa-grall' }
 
 set user account for this key to agould. set encryption type to dsa:
 
-    sshauth::key { "unixsys": user => "agould", type => "dsa" }
+    ::sshauth::key { "unixsys": user => "agould", type => "dsa" }
 
 remove all instances of 'unixsys' keys on ssh clients, servers and keymaster:
 
-    sshauth::key {"unixsys": ensure => 'absent' }
+    ::sshauth::key {"unixsys": ensure => 'absent' }
 
 ## sshauth::client ##
 Install keypair "unixsys" without overriding any original parameters:
 
-    sshauth::client {"unixsys": }
+    ::sshauth::client {"unixsys": }
 
 override $user parameter on this client
 
-    sshauth::client {"unixsys": user => 'agould' }
+    ::sshauth::client {"unixsys": user => 'agould' }
 
 override $user and $filename parameters. This installs the 'unixsys' keypair into agould's account with alternate keyname
 
-    sshauth::client {"unixsys": user => 'agould', filename => 'id_rsa-blee'}
+    ::sshauth::client {"unixsys": user => 'agould', filename => 'id_rsa-blee'}
 
 remove 'unixsys' keys from agould's account:
 
-    sshauth::client {"unixsys": user => 'agould', ensure => 'absent'}
+    ::sshauth::client {"unixsys": user => 'agould', ensure => 'absent'}
 
 ## sshauth::server ##
 install unixsys pubkey into agould's authorized_keys file:
 
-    sshauth::server {"unixsys": user => 'agould'}
+    ::sshauth::server {"unixsys": user => 'agould'}
 
 install into agould's account, only allow client with ip 192.168.0.5:
 
-    sshauth::server {"unixsys": user => 'agould', options => 'from "192.168.0.5"'}
+    ::sshauth::server {"unixsys": user => 'agould', options => 'from "192.168.0.5"'}
 
 remove unixsys pubkey from agould's authorized_keys file:
 
-    sshauth::server {"unixsys": ensure => 'absent',user => 'agould'}
+    ::sshauth::server {"unixsys": ensure => 'absent',user => 'agould'}
 
 
 

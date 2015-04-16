@@ -1,6 +1,6 @@
 # = Define: sshauth::key::master
 #
-# Create/regenerate/remove a key pair on the keymaster.
+# Create/regenerate/remove a key pair
 #
 # This definition is private, i.e. it is not intended to be called directly by
 # users. ssh::auth::key calls it to create virtual keys, which are realized in
@@ -8,91 +8,67 @@
 define sshauth::key::master (
   $ensure,
   $force,
-  $keytype,
+  $type,
   $length,
   $maxdays,
-  $mindate
+  $mindate,
 ) {
-  include sshauth::params
-
-  Exec { path => '/usr/bin:/usr/sbin:/bin:/sbin' }
-
-  File {
-    owner => 'puppet',
-    group => 'puppet',
-    mode  => '0600',
-  }
-
-  $keydir  = "${sshauth::params::keymaster_storage}/${name}"
-  $keyfile = "${keydir}/key"
-
-  file { $keydir:
-    ensure => directory,
-    mode   => '0644',
-  }
-
-  file { $keyfile:
-    ensure => $ensure,
-  }
-
-  file { "${keyfile}.pub":
-    ensure => $ensure,
-    mode   => '0644',
-  }
-
-  # Remove the existing key pair, if
-  # * $force is true, or
-  # * $maxdays or $mindate criteria aren't met, or
-  # * $keytype or $length have changed
   if $ensure == 'present' {
-    $keycontent = file( "${keyfile}.pub", '/dev/null' )
+    $current_time = time()
+    $keypair = get_ssh_keypair( $name )
 
-    if $keycontent {
+    # determine whether keys need to be generated
+    if ! $keypair {
+      $generate_keys = true
+    } else {
+      # check if keys should be revoked
       if $force {
-        $reason = 'force=true'
-      }
+        $reason = "forced"
 
-      if !$reason and $mindate and generate( '/usr/bin/find', $keyfile, '!', '-newermt', "${mindate}" ) {
-        $reason = "created before ${mindate}"
-      }
+      } elsif $keypair['length'] != $length {
+        $reason = "key length changed (${current_params['length']} -> $length)"
 
-      if !$reason and $maxdays and generate( '/usr/bin/find', $keyfile, '-mtime', "+${maxdays}" ) {
-        $reason = "older than ${maxdays} days"
-      }
+      } elsif $keypair['type'] != $type {
+        $reason = "key type changed (${current_params['type']} -> $type)"
 
-      if !$reason and $keycontent =~ /^ssh-... [^ ]+ (...) (\d+)$/ {
-        if $keytype != $1 {
-          $reason = "keytype changed: $1 -> ${keytype}"
-        } else {
-          if $length != $2 {
-            $reason = "length changed: $2 -> ${length}"
-          }
-        }
+      } elsif is_integer( $mindate ) and $mindate > 0 and $keypair['created_at'] < $mindate {
+        $reason = "key created before cutoff date (created at ${current_params['created_at']}, min. creation date is ${mindate})"
+
+      } elsif is_integer( $maxdays ) and $maxdays > 0 and
+              $current_time > ( $keypair['created_at'] + ( $maxdays * 60 * 60 * 24 ) ) {
+        $reason = "key has expired (created at ${current_params['created_at']}, currently ${$current_time})"
       }
 
       if $reason {
-        exec { "Revoke previous key ${name}: ${reason}":
-          command => "rm ${keyfile} ${keyfile}.pub",
-          before  => Exec["Create key ${name}: ${keytype}, ${length} bits"],
-        }
+        $generate_keys = true
+
+        notify { "SSH key '${name}' revoked: ${reason}": }
       }
     }
 
-    # Create the key pair.
-    # We "repurpose" the comment field in public keys on the keymaster to
-    # store data about the key, i.e. $keytype and $length. This avoids
-    # having to rerun ssh-keygen -l on every key at every run to determine
-    # the key length.
-    exec { "Create key ${name}: ${keytype}, ${length} bits":
-      command => "ssh-keygen -t ${keytype} -b ${length} -f ${keyfile} -C \"${keytype} ${length}\" -N \"\"",
-      user    => 'puppet',
-      group   => 'puppet',
-      creates => $keyfile,
-      before  => [
-        File[$keyfile],
-        File["${keyfile}.pub"]
-      ],
-      require => File[$keydir],
+    if ! $generate_keys {
+      $params = $keypair
+    } else {
+      notify { "Generating new SSH key: ${name}": }
+
+      $params = {
+        'created_at' => $current_time,
+        'length'     => $length,
+        'type'       => $type,
+      }
+
+      $keys = generate_keypair( $name, {
+        'length' => $length,
+        'type'   => $type,
+      } )
+
+      $params['public_key']  = $keys['public_key']
+      $params['private_key'] = $keys['private_key']
     }
-  } # if $ensure  == "present"
+
+    # save the keypair in puppetdb
+    create_resources( '@@sshauth::key::pair', {
+      "${name}" => $params
+    } )
+  }
 }

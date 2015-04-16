@@ -12,39 +12,32 @@
 #
 # # from sshauth::key
 # @@sshauth::key::client { $name:
-#     ensure   => $ensure,
-#     filename => $_filename,
-#     user     => $_user,
-#     tag      => $_tag,
+#   ensure   => $ensure,
+#   filename => $_filename,
+#   user     => $_user,
+#   tag      => $_tag,
 # }
 #
 # # from sshauth::client
 # Sshauth::Key::Client <<| tag == $_tag |>>
 #
 define sshauth::key::client (
-  $user,
   $ensure,
   $filename,
+  $user,
 ) {
-  include sshauth::params
-
   # get homedir and primary group of $user
-  $home  = gethomedir( $user )
-  $group = getgroup( $user )
+  $home  = get_home_dir( $user )
+  $group = get_group( $user )
   # notify { "sshauth::key::client: user is= $user": }
   # notify { "sshauth::key::client: home is= $home": }
   # notify { "sshauth::key::client: group is= $group": }
   # notify { "sshauth::key::client: ensure is= $ensure": }
 
-  # filename of private key on the keymaster (source)
-  $key_src_file = "${sshauth::params::keymaster_storage}/${name}/key"
-
   # filename of private key on the ssh client host (target)
   $key_tgt_file = "${home}/.ssh/${filename}"
 
-  # contents of public key on the keymaster
-  $key_src_content_pub = file( "${key_src_file}.pub", '/dev/null' )
-
+  $keypair = get_ssh_keypair( $name )
 
   # if 'absent', revoke the client keys
   if $ensure == 'absent' {
@@ -52,7 +45,7 @@ define sshauth::key::client (
       $key_tgt_file,
       "${key_tgt_file}.pub"
     ]:
-      ensure => 'absent'
+      ensure => $ensure
     }
 
   # test for homedir and primary group
@@ -64,11 +57,11 @@ define sshauth::key::client (
     # notify { "Can't determine primary group of user $user": }
     err( "Can't determine primary group of user $user" )
 
-  # If syntax of pubkey checks out, install keypair on client
-  } elsif ( $key_src_content_pub =~ /^(ssh-...) ([^ ]+)/ ) {
-    $keytype = $1
-    $modulus = $2
+  } elsif ! $keypair {
+    notify { "Private key for '${name}' not found; skipping": }
 
+  # install keypair on client
+  } else {
     # QUESTION: what about the homedir?  should we create that if 
     # not defined also? I think not.
     #
@@ -83,7 +76,7 @@ define sshauth::key::client (
     }
 
     file { $key_tgt_file:
-      content => file( $key_src_file, '/dev/null' ),
+      content => $keypair['private_key'],
       owner   => $user,
       group   => $group,
       mode    => '0600',
@@ -91,15 +84,11 @@ define sshauth::key::client (
     }
 
     file { "${key_tgt_file}.pub":
-      content => "${keytype} ${modulus} ${name}\n",
+      content => $keypair['public_key'],
       owner   => $user,
       group   => $group,
       mode    => '0644',
       require => File["${home}/.ssh"],
     }
-
-  # Else the keymaster has not realized the sshauth::keys::master resource yet
-  } else {
-    notify { "Private key file ${key_src_file} for key ${name} not found on keymaster; skipping ensure => present": }
   }
 }

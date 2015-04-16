@@ -19,46 +19,44 @@
 # $ensure:   Default: "present". Install or remove ssh keys. Setting to "absent"
 #            removes all instances of the named key for ssh clients, servers and
 #            the keymaster.
-# $user:     Default: namevar of this define. Username associated with this key.
-#            Can be overriden in sshauth::client and sshauth::server.
+# $force:    Default: "false". Forces regeneration of the target key on each
+#            puppet run. mindate parameter is better.
 # $filename: Alternate name of private key when installed on clients. Public key
 #            becomes ${filename}.pub.
-# $keytype:  Default: "rsa". Type of key to create. (-t option in ssh-keygen)
 # $length:   Default: "2048". The number of bits in the key to create.
 #            (-b option in ssh-keygen)
 # $mindate:  Date on which to revoke, recreate and redistribute sshkeys.
-# $maxdays:  Recreate keys every $maxdays days. 
-# $force:    Default: "false". Forces regeneration of the target key on each
-#            puppet run. mindate parameter is better.
+# $maxdays:  Recreate keys every $maxdays days.
 # $options:  Options for public key when installed on server (authorized_keys).
+# $type:     Default: "rsa". Type of key to create. (-t option in ssh-keygen)
+# $user:     Default: namevar of this define. Username associated with this key.
+#            Can be overriden in sshauth::client and sshauth::server.
 #
 # === Usage:
 #
 # # declare keypair named 'unixsys' with all defaults.
-# sshauth::key {"unixsys": }
+# sshauth::key { "unixsys": }
 #
 # # set alternate keyfile name for clients
-# sshauth::key {"unixsys": filename => 'id_rsa-grall' }
+# sshauth::key { "unixsys": filename => 'id_rsa-grall' }
 #
 # # set user account for this key to agould. set encryption type to dsa.
 # sshauth::key { "unixsys": user => "agould", type => "dsa" }
 #
 # # remove all instances of 'unixsys' keys on ssh clients, servers and keymaster.
-# sshauth::key {"unixsys": ensure => 'absent' }
+# sshauth::key { "unixsys": ensure => 'absent' }
 #
 define sshauth::key (
   $ensure   = present,
-  $user     = '',
   $filename = '',
-  $keytype  = 'rsa',
-  $length   = '2048',
-  $maxdays  = '',
-  $mindate  = '',
   $force    = false,
+  $length   = 2048,
+  $maxdays  = '',
+  $mindate  = 1429117979,
   $options  = '',
+  $type     = 'rsa',
+  $user     = '',
 ) {
-  include ::sshauth::params
-
   # parse parameters. set values from defaults.
   $_user = $user ? {
     # take $user from namevar
@@ -67,13 +65,13 @@ define sshauth::key (
   }
 
   $_filename = $filename ? {
-    ''      => "id_${keytype}",
+    ''      => "id_${type}",
     default => $filename,
   }
 
-  $_length = $keytype ? {
+  $_length = $type ? {
     'rsa' => $length,
-    'dsa' => '1024',
+    'dsa' => 1024,
   }
 
   $_tag = regsubst( $name, '@', '_at_' )
@@ -94,7 +92,7 @@ define sshauth::key (
   @@sshauth::key::master { $name:
     ensure  => $ensure,
     force   => $force,
-    keytype => $keytype,
+    type    => $type,
     length  => $_length,
     maxdays => $maxdays,
     mindate => $mindate,
