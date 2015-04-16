@@ -26,17 +26,17 @@ define sshauth::key::master (
         $reason = "forced"
 
       } elsif $keypair['length'] != $length {
-        $reason = "key length changed (${current_params['length']} -> $length)"
+        $reason = "key length changed (${keypair['length']} -> $length)"
 
       } elsif $keypair['type'] != $type {
-        $reason = "key type changed (${current_params['type']} -> $type)"
+        $reason = "key type changed (${keypair['type']} -> $type)"
 
       } elsif is_integer( $mindate ) and $mindate > 0 and $keypair['created_at'] < $mindate {
-        $reason = "key created before cutoff date (created at ${current_params['created_at']}, min. creation date is ${mindate})"
+        $reason = "key created before cutoff date (created at ${keypair['created_at']}, min. creation date is ${mindate})"
 
       } elsif is_integer( $maxdays ) and $maxdays > 0 and
               $current_time > ( $keypair['created_at'] + ( $maxdays * 60 * 60 * 24 ) ) {
-        $reason = "key has expired (created at ${current_params['created_at']}, currently ${$current_time})"
+        $reason = "key has expired (created at ${keypair['created_at']}, currently ${$current_time})"
       }
 
       if $reason {
