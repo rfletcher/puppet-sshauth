@@ -1,6 +1,14 @@
 sshauth
 =======
 
+**WARNING**: This fork has been heavily modified recently. Certain features
+not used by the author might be broken entirely.
+
+At the very least, there's a depdendency on [puppetdbquery]
+(https://github.com/dalen/puppet-puppetdbquery) which isn't declared.
+
+* * *
+
 sshauth provides centralized creation, distribution, and revocation of
 ssh keys for users. This modules was adapted from the ssh::auth module by
 Andrew E. Schulman <andrex at alumni dot utexas dot net>. For full
