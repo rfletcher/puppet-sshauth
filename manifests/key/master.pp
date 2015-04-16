@@ -51,19 +51,18 @@ define sshauth::key::master (
     } else {
       notify { "Generating new SSH key: ${name}": }
 
-      $params = {
-        'created_at' => $current_time,
-        'length'     => $length,
-        'type'       => $type,
-      }
-
       $keys = generate_keypair( $name, {
         'length' => $length,
         'type'   => $type,
       } )
 
-      $params['public_key']  = $keys['public_key']
-      $params['private_key'] = $keys['private_key']
+      $params = {
+        'created_at'  => $current_time,
+        'length'      => $length,
+        'type'        => $type,
+        'public_key'  => $keys['public_key'],
+        'private_key' => $keys['private_key'],
+      }
     }
 
     # save the keypair in puppetdb
