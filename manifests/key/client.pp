@@ -83,8 +83,11 @@ define sshauth::key::client (
       require => File["${home}/.ssh"],
     }
 
+    $key_type = $keypair['type']
+    $key      = $keypair['public_key']
+
     file { "${key_tgt_file}.pub":
-      content => $keypair['public_key'],
+      content => "ssh-${key_type} ${key}",
       owner   => $user,
       group   => $group,
       mode    => '0644',
